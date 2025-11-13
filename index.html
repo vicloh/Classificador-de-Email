@@ -192,7 +192,7 @@
                     console.log(`  ${key}:`, value);
                 }
 
-                const response = await fetch('http://localhost:8000/classify/', {
+                const response = await fetch('/classify/', {
                     method: 'POST',
                     body: formData
                 });
