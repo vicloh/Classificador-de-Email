@@ -63,8 +63,8 @@ else:
 
 ### 1️⃣ **Clone o Repositório**
 ```bash
-git clone https://github.com/seu-usuario/processo-seletivo-autou.git
-cd processo-seletivo-autou
+git clone https://github.com/vicloh/Processo-seletivo-AutoU.git
+cd Processo-seletivo-AutoU
 ```
 
 ### 2️⃣ **Crie o Ambiente Virtual**
