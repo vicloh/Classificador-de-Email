@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Triagem de Emails - AutoU</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📧</text></svg>">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', Arial, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; min-height: 100vh; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 40px; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #2d3748; margin-bottom: 40px; font-weight: 600; font-size: 2.2rem; }
+        .form-group { margin-bottom: 24px; }
+        label { display: block; margin-bottom: 8px; font-weight: 500; color: #4a5568; font-size: 0.95rem; }
+        textarea { width: 100%; height: 150px; padding: 16px; border: 2px solid #e2e8f0; border-radius: 12px; resize: vertical; font-family: inherit; font-size: 0.95rem; transition: border-color 0.2s; }
+        textarea:focus { outline: none; border-color: #667eea; }
+        textarea:disabled { background: #f7fafc; color: #a0aec0; cursor: not-allowed; }
+        input[type="file"] { width: 100%; padding: 16px; border: 2px dashed #cbd5e0; border-radius: 12px; background: #f7fafc; cursor: pointer; transition: all 0.2s; }
+        input[type="file"]:hover:not(:disabled) { border-color: #667eea; background: #edf2f7; }
+        input[type="file"]:disabled { background: #f1f5f9; color: #a0aec0; cursor: not-allowed; border-color: #e2e8f0; }
+        .button-group { display: flex; gap: 12px; flex-wrap: wrap; }
+        button { background: #667eea; color: white; padding: 16px 32px; border: none; border-radius: 12px; cursor: pointer; font-size: 1rem; font-weight: 500; transition: all 0.2s; flex: 1; min-width: 140px; }
+        button:hover:not(:disabled) { background: #5a67d8; transform: translateY(-1px); }
+        button:disabled { background: #a0aec0; cursor: not-allowed; transform: none; }
+        .btn-secondary { background: #718096; }
+        .btn-secondary:hover:not(:disabled) { background: #4a5568; }
+        
+        .result { margin-top: 32px; border-radius: 12px; opacity: 0; transform: translateY(20px); transition: all 0.3s ease; background: #ffffff; border: 2px solid #e2e8f0; overflow: hidden; }
+        .result.show { opacity: 1; transform: translateY(0); }
+        
+        .result-header { padding: 20px 24px; background: #f7fafc; border-bottom: 2px solid #e2e8f0; }
+        
+        .badge { display: inline-block; padding: 8px 16px; font-size: 1rem; font-weight: 600; color: white; border-radius: 99px; }
+        .badge.produtivo { background: #38a169; }
+        .badge.improdutivo { background: #e53e3e; }
+        .badge.error { background: #e53e3e; }
+        
+        .result-body { padding: 24px; }
+        .result-body p { font-weight: 500; color: #4a5568; margin-bottom: 12px; }
+        
+        blockquote { margin: 0; padding: 16px; background: #f7fafc; border-left: 5px solid #667eea; border-radius: 8px; color: #2d3748; font-style: italic; }
+        
+        .loading { text-align: center; margin-top: 32px; display: none; }
+        .loading p { color: #667eea; font-weight: 500; }
+        .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid #e2e8f0; border-radius: 50%; border-top-color: #667eea; animation: spin 1s ease-in-out infinite; margin-right: 8px; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .container { padding: 24px; }
+            h1 { font-size: 1.8rem; margin-bottom: 32px; }
+            .button-group { flex-direction: column; }
+            button { min-width: auto; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Triagem Automática de Emails</h1>
+        
+        <form id="emailForm">
+            <div class="form-group">
+                <label for="emailText">Insira o corpo do Email:</label>
+                <textarea id="emailText" placeholder="Cole o texto do email aqui..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <span class="label-text">Ou faça upload de um arquivo (.txt ou .pdf):</span>
+                <input type="file" id="emailFile" accept=".txt,.pdf">
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" id="submitBtn">Classificar Email</button>
+                <button type="button" id="clearBtn" class="btn-secondary">Limpar Formulário</button>
+            </div>
+        </form>
+        
+        <div class="loading" id="loading">
+            <p><span class="spinner"></span>Processando email...</p>
+        </div>
+        
+        <div class="result" id="result">
+            <div class="result-header">
+                <span id="categoria-badge" class="badge">Produtivo</span>
+            </div>
+            
+            <div class="result-body">
+                <p><strong>Sugestão de Resposta:</strong></p>
+                <blockquote id="sugestao">
+                    A sugestão da IA aparecerá aqui...
+                </blockquote>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const form = document.getElementById('emailForm');
+        const emailText = document.getElementById('emailText');
+        const emailFile = document.getElementById('emailFile');
+        const submitBtn = document.getElementById('submitBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const loading = document.getElementById('loading');
+        const result = document.getElementById('result');
+
+        // Função para limpar formulário
+        clearBtn.addEventListener('click', () => {
+            emailText.value = '';
+            emailFile.value = '';
+            result.classList.remove('show');
+            setTimeout(() => result.style.display = 'none', 300);
+            emailText.focus();
+        });
+
+        // Função para mostrar resultado com animação
+        function showResult(className, categoria, sugestao) {
+            result.style.display = 'block';
+            
+            // Define a classe do card (para a animação)
+            result.className = 'result';
+            
+            // Encontra o SELO e atualiza
+            const categoriaBadge = document.getElementById('categoria-badge');
+            categoriaBadge.textContent = categoria;
+            categoriaBadge.className = `badge ${className}`;
+
+            // Encontra a SUGESTÃO e atualiza
+            document.getElementById('sugestao').textContent = sugestao;
+            
+            // Aciona a animação de "fade-in"
+            setTimeout(() => result.classList.add('show'), 10);
+            
+            // Se for erro, adiciona evento para esconder apenas quando usuário digitar ou selecionar arquivo
+            if (className === 'error') {
+                const hideErrorOnInput = () => {
+                    result.classList.remove('show');
+                    setTimeout(() => result.style.display = 'none', 300);
+                    emailText.removeEventListener('input', hideErrorOnInput);
+                    emailFile.removeEventListener('change', hideErrorOnInput);
+                };
+                
+                emailText.addEventListener('input', hideErrorOnInput);
+                emailFile.addEventListener('change', hideErrorOnInput);
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const textValue = emailText.value.trim();
+            
+            // VALIDAÇÃO ANTES de qualquer processamento
+            if (!textValue && !emailFile.files[0]) {
+                // Mostrar erro SEM loading e SEM desabilitar botões
+                showResult('error', 'Erro', 'Forneça o texto do email ou faça upload de um arquivo');
+                return; // Para aqui - não continua
+            }
+            
+            // Só chega aqui se a validação passou
+            // Limpar resultados anteriores apenas se não for erro
+            if (!result.classList.contains('show') || !document.getElementById('categoria-badge').classList.contains('error')) {
+                result.classList.remove('show');
+                setTimeout(() => result.style.display = 'none', 300);
+            }
+            
+            loading.style.display = 'block';
+            
+            // Desabilitar TODOS os campos e botões
+            emailText.disabled = true;
+            emailFile.disabled = true;
+            submitBtn.disabled = true;
+            clearBtn.disabled = true;
+            submitBtn.innerHTML = 'Processando...';
+
+            try {
+                const formData = new FormData();
+                
+                console.log('🔍 DEBUG Frontend - Texto capturado:', textValue);
+                
+                if (textValue) {
+                    formData.append('email_text', textValue);
+                    console.log('✅ Texto adicionado ao FormData');
+                }
+                
+                if (emailFile.files[0]) {
+                    formData.append('email_file', emailFile.files[0]);
+                    console.log('✅ Arquivo adicionado ao FormData');
+                }
+
+                console.log('📤 Enviando FormData com:');
+                for (let [key, value] of formData.entries()) {
+                    console.log(`  ${key}:`, value);
+                }
+
+                const response = await fetch('http://localhost:8000/classify/', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || 'Erro ao processar email');
+                }
+
+                const data = await response.json();
+                
+                // Mostrar resultado com animação
+                showResult(data.categoria.toLowerCase(), data.categoria, data.sugestao_resposta);
+
+            } catch (err) {
+                // Mostrar erro de API/rede (permanece visível)
+                showResult('error', 'Erro', err.message);
+            } finally {
+                // Sempre limpa loading e reabilita TUDO
+                loading.style.display = 'none';
+                emailText.disabled = false;
+                emailFile.disabled = false;
+                submitBtn.disabled = false;
+                clearBtn.disabled = false;
+                submitBtn.innerHTML = 'Classificar Email';
+            }
+        });
+    </script>
+</body>
+</html>
