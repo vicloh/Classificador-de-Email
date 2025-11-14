@@ -116,13 +116,6 @@ processo-seletivo-autou/
 3. **Teste combinado**: Use texto + arquivo simultaneamente
 4. **Teste de erro**: Tente enviar arquivo .docx para ver tratamento de erro
 
-## Próximas Melhorias
-
-- [ ] Histórico de classificações
-- [ ] Métricas de precisão
-- [ ] Integração com APIs de email
-- [ ] Dashboard administrativo
-- [ ] Modelo de ML personalizado
 
 ---
 
