@@ -7,8 +7,8 @@
 
 ## Demonstração
 
-![Demo da Aplicação](demo.gif)
-*GIF mostrando upload de arquivo, classificação e resultado*
+![Demo da Aplicação](https://github.com/user-attachments/assets/749133ba-ba75-416f-ab4a-c60add24ac3e)
+![Image](https://github.com/user-attachments/assets/4d238771-721b-44b2-999f-13d81c7cfad9)
 
 ## Sobre o Projeto
 
