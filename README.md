@@ -5,6 +5,8 @@
 - **Aplicação no Ar**: https://classificador-emails-9c0b.onrender.com/
 - **Vídeo Demonstração**: https://youtu.be/t_cz22Towfc
 
+> ⚠️ **Aviso**: A aplicação está hospedada no plano gratuito do Render. Se estiver inativa, pode levar **30-60 segundos** para inicializar no primeiro acesso. Aguarde o carregamento completo.
+
 ## Demonstração
 
 ![Demo da Aplicação](https://github.com/user-attachments/assets/749133ba-ba75-416f-ab4a-c60add24ac3e)
@@ -116,6 +118,12 @@ processo-seletivo-autou/
 3. **Teste combinado**: Use texto + arquivo simultaneamente
 4. **Teste de erro**: Tente enviar arquivo .docx para ver tratamento de erro
 
+## Observações de Deploy
+
+### Render (Plano Gratuito)
+- **Tempo de inicialização**: 30-60 segundos no primeiro acesso após inatividade
+- **Suspensão automática**: Aplicação hiberna após 15 minutos sem uso
+- **Recomendação**: Aguarde o carregamento completo antes de usar
 
 ---
 
