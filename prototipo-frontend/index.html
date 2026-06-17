@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Classificação de Emails - AutoU AI</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body class="theme-dark"> <!-- Start in dark theme by default -->
+
+    <!-- Background Orbs for atmospheric lighting effects -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <!-- DASHBOARD APPLICATION WRAPPER -->
+    <div id="dashboardApp">
+        <!-- Sidebar Navigation -->
+        <aside>
+            <div class="sidebar-header">
+                <div class="brand">
+                    <div class="brand-logo">
+                        <i data-lucide="cpu"></i>
+                    </div>
+                    <span class="brand-name">AutoU AI</span>
+                </div>
+                
+                <nav>
+                    <ul class="menu-list">
+                        <li class="menu-item active" data-tab="triagem">
+                            <i data-lucide="mail"></i>
+                            <span>Triagem</span>
+                        </li>
+                        <li class="menu-item" data-tab="configuracoes">
+                            <i data-lucide="settings"></i>
+                            <span>Configurações</span>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="api-status">
+                    <div class="status-dot" id="apiStatusDot"></div>
+                    <span id="apiStatusText">Modo Offline (Simulado)</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main>
+            <!-- Top Header -->
+            <header>
+                <div class="header-title">
+                    <h1 id="activeTabTitle">Triagem Inteligente</h1>
+                    <p id="activeTabDesc">Envie e-mails para classificação automática e sugestões de respostas por IA.</p>
+                </div>
+                
+                <div class="header-actions">
+                    <!-- Notification Bell with count indicator (NEW) -->
+                    <div class="notification-container">
+                        <button class="theme-toggle-btn" id="notificationBtn" title="Notificações">
+                            <i data-lucide="bell"></i>
+                            <span class="notification-badge" id="notificationBadge"></span>
+                        </button>
+                        
+                        <div class="notification-dropdown" id="notificationDropdown">
+                            <div class="notification-dropdown-header">
+                                <span>Mensagens do Sistema</span>
+                                <button class="btn-clear-notifications" id="clearNotificationsBtn">Limpar tudo</button>
+                            </div>
+                            <div class="notification-list" id="notificationList">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Light/Dark Mode Switcher Button -->
+                    <button class="theme-toggle-btn" id="themeToggleBtn" title="Alternar Tema">
+                        <i data-lucide="sun" id="themeIconSun" style="display: none;"></i>
+                        <i data-lucide="moon" id="themeIconMoon"></i>
+                    </button>
+                    
+                    <div class="mode-toggle-container">
+                        <span class="mode-label">Modo Conectado API</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="apiModeToggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </header>
+
+            <!-- 1. TRIAGEM TAB -->
+            <div class="tab-content active" id="tab-triagem">
+                <div class="triage-container">
+                    <!-- Input Panel -->
+                    <div class="triage-panel">
+                        <h2>Nova Triagem</h2>
+                        <p style="color: var(--text-secondary); font-size: 0.85rem;">Insira o texto do e-mail ou faça upload de um arquivo para classificar e obter uma resposta sugerida.</p>
+                        
+                        <!-- Templates Drawer -->
+                        <div class="templates-drawer-header">
+                            <i data-lucide="folder-open" style="width: 14px; height: 14px;"></i>
+                            <span>Modelos Rápidos (Templates)</span>
+                        </div>
+                        <div class="templates-pills" id="templatesPills">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="emailInput">Corpo do E-mail</label>
+                            <div class="editor-wrapper">
+                                <textarea id="emailInput" class="email-input" placeholder="Cole o conteúdo do e-mail aqui..."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Arquivo Anexo (Documentos ou Imagens)</label>
+                            <div class="upload-zone" id="uploadZone">
+                                <div class="upload-icon">
+                                    <i data-lucide="upload-cloud"></i>
+                                </div>
+                                <span class="upload-text"><strong>Clique para fazer upload</strong> ou arraste e solte</span>
+                                <span class="upload-subtext">TXT, PDF ou Imagens (PNG, JPG, WEBP - máx. 5MB)</span>
+                                <input type="file" id="fileInput" class="file-input" accept=".txt,.pdf,.png,.jpg,.jpeg,.webp">
+                            </div>
+                            <!-- Uploaded file badge -->
+                            <div class="file-badge" id="fileBadge">
+                                <div class="file-badge-info">
+                                    <i data-lucide="file-text" style="color: var(--accent); width: 16px; height: 16px;"></i>
+                                    <span id="fileName">arquivo.pdf</span>
+                                </div>
+                                <i data-lucide="x" class="file-badge-remove" id="btnRemoveFile"></i>
+                            </div>
+                        </div>
+                        
+                        <button class="btn-primary" id="btnRunTriage">
+                            <span class="spinner" id="triageSpinner"></span>
+                            <i data-lucide="sparkles" id="triageIcon"></i>
+                            <span>Classificar com AutoU AI</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Results Panel -->
+                    <div class="results-panel" id="resultsPanel">
+                        <!-- Empty State -->
+                        <div class="empty-results-state" id="emptyResultsState">
+                            <i data-lucide="brain-circuit"></i>
+                            <h3>Aguardando Triagem</h3>
+                            <p>Insira os dados à esquerda e clique em Classificar para visualizar a análise detalhada por IA.</p>
+                        </div>
+                        
+                        <!-- Result Content (Hidden by default) -->
+                        <div class="result-card-content" id="resultCardContent">
+                            <div class="result-header-box">
+                                <span class="result-title">Resultado da Análise</span>
+                                <span class="status-badge" id="resultBadge">Produtivo</span>
+                            </div>
+                            
+                            <!-- Preprocessing Box -->
+                            <div class="preprocessing-box">
+                                <div class="preproc-title">
+                                    <i data-lucide="binary" style="width: 14px; height: 14px;"></i>
+                                    <span>Processamento de Linguagem Natural (NLP)</span>
+                                </div>
+                                <div class="tag-container" id="keywordTagContainer">
+                                    <!-- Populated by JS -->
+                                </div>
+                            </div>
+                            
+                            <!-- NLP Comparison Grid -->
+                            <div class="nlp-comparison-grid">
+                                <div class="nlp-comparison-card">
+                                    <h4>
+                                        <i data-lucide="minus-circle" style="color: var(--improdutivo); width: 12px; height: 12px;"></i>
+                                        Palavras Removidas
+                                    </h4>
+                                    <div class="nlp-diff-content" id="nlpRemovedContent">
+                                        <!-- Removed stop words/stems -->
+                                    </div>
+                                </div>
+                                <div class="nlp-comparison-card">
+                                    <h4>
+                                        <i data-lucide="check-circle" style="color: var(--produtivo); width: 12px; height: 12px;"></i>
+                                        Radicais Analisados
+                                    </h4>
+                                    <div class="nlp-diff-content" id="nlpKeptContent">
+                                        <!-- Kept word stems -->
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Suggestion Box -->
+                            <div class="suggestion-box">
+                                <div class="suggestion-header">
+                                    <span class="suggestion-label">Sugestão de Resposta IA</span>
+                                    <div class="suggestion-actions">
+                                        <div class="tone-selector">
+                                            <button class="tone-option active" data-tone="formal">Formal</button>
+                                            <button class="tone-option" data-tone="informal">Informal</button>
+                                        </div>
+                                        <button class="icon-btn" id="btnCopySuggestion" title="Copiar Resposta">
+                                            <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="auto-sent-notice" id="autoSentNotice" style="display: none; align-items: center; gap: 8px; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); border-radius: 8px; padding: 10px 14px; font-size: 0.8rem; color: var(--produtivo); margin-bottom: 10px;">
+                                    <i data-lucide="send" style="width: 14px; height: 14px;"></i>
+                                    <span>Mensagem automática encaminhada com sucesso ao remetente!</span>
+                                </div>
+                                <textarea class="suggestion-textarea" id="suggestionTextarea" readonly></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2. CONFIGURAÇÕES TAB -->
+            <div class="tab-content" id="tab-configuracoes">
+                <div class="settings-panel">
+                    <h2>Configurações do Sistema</h2>
+                    <p style="color: var(--text-secondary); font-size: 0.85rem;">Gerencie as chaves de API, endpoints e regras de negócio da inteligência artificial.</p>
+                    
+                    <div class="settings-group">
+                        <h3>Conexão com a API</h3>
+                        
+                        <div class="settings-row">
+                            <label for="settingsApiUrl">Endpoint da API</label>
+                            <input type="text" id="settingsApiUrl" class="settings-input" placeholder="http://localhost:8085/classify/">
+                        </div>
+                        
+                        <div class="settings-row">
+                            <label for="settingsApiKey">Chave Gemini API</label>
+                            <input type="password" id="settingsApiKey" class="settings-input" placeholder="Insira sua chave API...">
+                        </div>
+                    </div>
+                    
+                    <div class="settings-group">
+                        <h3>Parâmetros da IA</h3>
+                        
+                        <div class="settings-row">
+                            <label for="settingsModel">Modelo Generativo</label>
+                            <input type="text" id="settingsModel" class="settings-input" placeholder="gemini-flash-latest">
+                        </div>
+                        
+                        <div class="settings-row">
+                            <label for="settingsStyle">Tom de Escrita Padrão</label>
+                            <select id="settingsStyle" class="settings-input">
+                                <option value="formal">Formal e Profissional</option>
+                                <option value="informal">Informal e Amigável</option>
+                            </select>
+                        </div>
+                        
+                        <div class="settings-row">
+                            <label for="settingsFallback">Categoria Fallback (Segurança)</label>
+                            <select id="settingsFallback" class="settings-input">
+                                <option value="produtivo">Produtivo (Tratar com prioridade)</option>
+                                <option value="improdutivo">Improdutivo (Arquivar automaticamente)</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button class="btn-primary" id="btnSaveSettings" style="padding: 10px 24px;">
+                            <i data-lucide="save" style="width: 16px; height: 16px;"></i>
+                            <span>Salvar Configurações</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+    <!-- Application Javascript Logic -->
+    <script src="app.js"></script>
+</body>
+</html>

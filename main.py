@@ -61,6 +61,7 @@ class ClassificationResponse(BaseModel):
     """Modelo de resposta para classificação de emails."""
     categoria: str
     sugestao_resposta: str
+    sugestoes_por_tom: dict = None
 
 # Configuração do modelo Gemini AI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
@@ -99,7 +100,6 @@ Retorne APENAS um JSON com a chave "categoria".
 
 Texto: {text}
 """
-    # Validação da categoria retornada
     try:
         response = await asyncio.to_thread(model.generate_content, prompt)
         result = json.loads(response.text)
@@ -114,16 +114,56 @@ Texto: {text}
         # Fallback seguro: em caso de erro, considera como Produtivo
         return "Produtivo"
 
-async def get_generated_response(full_text: str, final_category: str) -> str:
+async def get_image_classification(mime_type: str, data: bytes) -> str:
     """
-    Gera uma sugestão de resposta automática baseada no conteúdo e categoria do email.
+    Classifica uma imagem como 'Produtivo' ou 'Improdutivo' usando a API Gemini.
+    
+    Args:
+        mime_type (str): Tipo MIME da imagem
+        data (bytes): Dados binários da imagem
+        
+    Returns:
+        str: Categoria da imagem ('Produtivo' ou 'Improdutivo')
+    """
+    if not os.getenv("GEMINI_API_KEY"):
+        raise HTTPException(status_code=500, detail="Chave da API Gemini não configurada.")
+    
+    image_part = {
+        "mime_type": mime_type,
+        "data": data
+    }
+    
+    prompt = """
+Classifique a imagem a seguir como 'Produtivo' ou 'Improdutivo'.
+- 'Produtivo': exige ação (documento fiscal, comprovante de pagamento, print de erro no sistema, logs visíveis, informações de suporte, print de tela do sistema)
+- 'Improdutivo': não exige ação (spam, meme, imagem em branco, assinatura de e-mail, foto decorativa, propaganda, paisagem)
+
+Retorne APENAS um JSON com a chave "categoria".
+"""
+    try:
+        response = await asyncio.to_thread(model.generate_content, [prompt, image_part])
+        result = json.loads(response.text)
+        
+        categoria = result.get("categoria", "Produtivo")
+        if categoria not in ["Produtivo", "Improdutivo"]:
+            categoria = "Produtivo"
+        return categoria
+    except Exception:
+        # Fallback seguro
+        return "Produtivo"
+
+async def get_generated_response(full_text: str, final_category: str, image_part: dict = None) -> dict:
+    """
+    Gera uma sugestão de resposta automática baseada no conteúdo, categoria e imagem opcional do email.
+    Se a categoria for 'Produtivo', gera variações em diferentes tons (Formal e Informal).
     
     Args:
         full_text (str): Texto completo do email
         final_category (str): Categoria final do email
+        image_part (dict, optional): Dicionário contendo dados de imagem para a API Gemini
         
     Returns:
-        str: Sugestão de resposta automática
+        dict: Dicionário contendo a sugestão principal e sugestões por tom
         
     Raises:
         HTTPException: Quando a chave da API não está configurada
@@ -131,37 +171,71 @@ async def get_generated_response(full_text: str, final_category: str) -> str:
     if not os.getenv("GEMINI_API_KEY"):
         raise HTTPException(status_code=500, detail="Chave da API Gemini não configurada.")
     
-    prompt = f"""
-Gere uma resposta automática adequada para este email que foi classificado como '{final_category}'.
+    if final_category == "Produtivo":
+        prompt = f"""
+Gere sugestões de resposta adequadas em dois tons diferentes (Formal e Informal) para este email classificado como 'Produtivo'.
+A versão formal deve ser profissional, polida e corporativa.
+A versão informal deve ser amigável, próxima e prestativa.
 
-Se 'Produtivo': sugira encaminhar ao time responsável ou próximos passos.
-Se 'Improdutivo': resposta cordial e breve.
-
-Retorne APENAS um JSON com a chave "sugestao_resposta".
+Retorne APENAS um JSON com o seguinte formato:
+{{
+  "sugestao_resposta": "versão formal aqui",
+  "sugestoes_por_tom": {{
+    "formal": "versão formal aqui",
+    "informal": "versão informal aqui"
+  }}
+}}
 
 Email completo: {full_text}
-Categoria: {final_category}
 """
-    # Fallback para respostas vazias / Fallback seguro em caso de erro
+    else:
+        prompt = f"""
+Gere uma resposta automática de agradecimento cordial e breve para este email classificado como 'Improdutivo'.
+Retorne APENAS um JSON com o seguinte formato:
+{{
+  "sugestao_resposta": "resposta automática aqui"
+}}
+
+Email completo: {full_text}
+"""
+
     try:
-        response = await asyncio.to_thread(model.generate_content, prompt)
+        contents = [prompt]
+        if image_part:
+            contents.append(image_part)
+            
+        response = await asyncio.to_thread(model.generate_content, contents)
         result = json.loads(response.text)
         
         sugestao = result.get("sugestao_resposta", "")
+        sugestoes_por_tom = result.get("sugestoes_por_tom", None)
         
         if not sugestao:
             if final_category == "Produtivo":
                 sugestao = "Encaminharemos sua solicitação ao time responsável para análise."
+                sugestoes_por_tom = {
+                    "formal": "Encaminharemos sua solicitação ao time responsável para análise.",
+                    "informal": "Oi! Já passei sua mensagem pro time e logo a gente te responde."
+                }
             else:
                 sugestao = "Agradecemos seu contato!"
+                sugestoes_por_tom = None
                 
-        return sugestao
+        return {"sugestao_resposta": sugestao, "sugestoes_por_tom": sugestoes_por_tom}
     except (json.JSONDecodeError, KeyError, Exception):
-        
         if final_category == "Produtivo":
-            return "Encaminharemos sua solicitação ao time responsável para análise."
+            return {
+                "sugestao_resposta": "Encaminharemos sua solicitação ao time responsável para análise.",
+                "sugestoes_por_tom": {
+                    "formal": "Encaminharemos sua solicitação ao time responsável para análise.",
+                    "informal": "Oi! Já passei sua mensagem pro time e logo a gente te responde."
+                }
+            }
         else:
-            return "Agradecemos seu contato!"
+            return {
+                "sugestao_resposta": "Agradecemos seu contato!",
+                "sugestoes_por_tom": None
+            }
 
 def preprocess_text(text: str) -> str:
     """
@@ -218,18 +292,30 @@ async def classify_email(
         email_body_text = email_text.strip()
     
     # Processamento do arquivo anexado
+    image_data = None
+    image_mime_type = None
     if email_file:
-        if email_file.filename.endswith('.txt'):
+        filename = email_file.filename.lower()
+        content_type = email_file.content_type or ""
+        
+        if filename.endswith('.txt'):
             content = await email_file.read()
             file_attachment_text = content.decode('utf-8').strip()
-        elif email_file.filename.endswith('.pdf'):
+        elif filename.endswith('.pdf'):
             try:
                 with pdfplumber.open(email_file.file) as pdf:
                     file_attachment_text = ''.join(page.extract_text() or "" for page in pdf.pages).strip()
             except Exception as e:
                 raise HTTPException(status_code=400, detail=f"Erro ao processar PDF: {e}")
+        elif filename.endswith(('.png', '.jpg', '.jpeg', '.webp')) or content_type.startswith('image/'):
+            try:
+                image_data = await email_file.read()
+                image_mime_type = content_type or "image/png"
+                file_attachment_text = "IMAGE_ATTACHMENT"
+            except Exception as e:
+                raise HTTPException(status_code=400, detail=f"Erro ao processar imagem: {e}")
         else:
-            raise HTTPException(status_code=400, detail="Formato de arquivo não suportado. Use .txt ou .pdf")
+            raise HTTPException(status_code=400, detail="Formato de arquivo não suportado. Use .txt, .pdf, ou imagens (.png, .jpg, .jpeg, .webp)")
     
     # Validação de entrada
     if not email_body_text and not file_attachment_text:
@@ -243,7 +329,10 @@ async def classify_email(
         body_category = await get_single_classification(email_body_text)
     
     if file_attachment_text:
-        attachment_category = await get_single_classification(file_attachment_text)
+        if file_attachment_text == "IMAGE_ATTACHMENT":
+            attachment_category = await get_image_classification(image_mime_type, image_data)
+        else:
+            attachment_category = await get_single_classification(file_attachment_text)
     
     # Aplicação da regra de negócio: só é Improdutivo se TODOS os componentes forem Improdutivos
     final_category = "Produtivo"  # Default seguro
@@ -260,14 +349,24 @@ async def classify_email(
     if email_body_text:
         full_text += f"CORPO: {email_body_text}"
     if file_attachment_text:
-        full_text += f"\nANEXO: {file_attachment_text}"
+        if file_attachment_text == "IMAGE_ATTACHMENT":
+            full_text += f"\nANEXO: [Imagem anexada: {email_file.filename}]"
+        else:
+            full_text += f"\nANEXO: {file_attachment_text}"
     
     # Geração da sugestão de resposta
-    suggested_response = await get_generated_response(full_text, final_category)
+    image_part = None
+    if image_data:
+        image_part = {
+            "mime_type": image_mime_type,
+            "data": image_data
+        }
+    gen_response = await get_generated_response(full_text, final_category, image_part)
     
     return ClassificationResponse(
         categoria=final_category,
-        sugestao_resposta=suggested_response
+        sugestao_resposta=gen_response["sugestao_resposta"],
+        sugestoes_por_tom=gen_response["sugestoes_por_tom"]
     )
 
 if __name__ == "__main__":
